@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------
+# Unreal Engine generated / build output
+# ---------------------------------------------------------------
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.sln
+*.slnx
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.xcodeproj
+*.xcworkspace
+
+# ---------------------------------------------------------------
+# Marketplace / third-party content excluded from source control.
+# Re-downloadable from Fab. See README for setup.
+# ---------------------------------------------------------------
+/Content/ParagonSteel/
+
+# ---------------------------------------------------------------
+# OS cruft
+# ---------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
