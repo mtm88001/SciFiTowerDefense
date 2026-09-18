@@ -72,9 +72,10 @@ void ATDProjectileBase::OnConstruction(const FTransform& Transform)
 	ProjectileMovement->HomingAccelerationMagnitude = HomingAcceleration;
 }
 
-void ATDProjectileBase::InitializeProjectile(ATDEnemyBase* NewTarget)
+void ATDProjectileBase::InitializeProjectile(ATDEnemyBase* NewTarget, FVector InLaunchDirection)
 {
 	TargetEnemy = NewTarget;
+	LaunchDirection = InLaunchDirection;
 }
 
 void ATDProjectileBase::BeginPlay()
@@ -86,7 +87,10 @@ void ATDProjectileBase::BeginPlay()
 	ProjectileMovement->InitialSpeed = ProjectileSpeed;
 	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->HomingAccelerationMagnitude = HomingAcceleration;
-	ProjectileMovement->Velocity = GetActorForwardVector() * ProjectileSpeed;
+
+	const FVector FireDirection = LaunchDirection.IsNearlyZero() ? GetActorForwardVector() : LaunchDirection.GetSafeNormal();
+	SetActorRotation(FireDirection.Rotation());
+	ProjectileMovement->Velocity = FireDirection * ProjectileSpeed;
 
 	if (UMaterialInstanceDynamic* ProjectileMaterial = ProjectileVisual->CreateAndSetMaterialInstanceDynamic(0))
 	{

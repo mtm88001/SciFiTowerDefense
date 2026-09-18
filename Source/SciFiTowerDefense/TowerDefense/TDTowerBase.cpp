@@ -254,7 +254,7 @@ void ATDTowerBase::TryFire()
 		return;
 	}
 
-	Projectile->InitializeProjectile(CurrentTarget);
+	Projectile->InitializeProjectile(CurrentTarget, AimDirection);
 	UGameplayStatics::FinishSpawningActor(Projectile, SpawnTransform);
 	++ProjectilesFired;
 	UE_LOG(LogTemp, Log, TEXT("TD Tower %s fired projectile %d at: %s"),

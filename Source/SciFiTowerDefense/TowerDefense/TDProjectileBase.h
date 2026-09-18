@@ -23,9 +23,12 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	/** Sets the intended enemy before deferred spawning is completed. */
+	/** Sets the intended enemy before deferred spawning is completed.
+	 *  InLaunchDirection, when non-zero, is used for initial velocity/rotation
+	 *  instead of the actor's spawn-time forward vector, which is not
+	 *  reliably set yet when this runs during a deferred spawn. */
 	UFUNCTION(BlueprintCallable, Category = "Tower Defense|Projectile")
-	void InitializeProjectile(ATDEnemyBase* NewTarget);
+	void InitializeProjectile(ATDEnemyBase* NewTarget, FVector InLaunchDirection = FVector::ZeroVector);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Projectile", meta = (ClampMin = "1.0", Units = "cm/s"))
 	float ProjectileSpeed = 1500.0f;
@@ -74,6 +77,8 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ATDEnemyBase> TargetEnemy;
+
+	FVector LaunchDirection = FVector::ZeroVector;
 
 	bool bHasHit = false;
 };
