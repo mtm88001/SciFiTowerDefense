@@ -35,6 +35,10 @@ void ATDWaveSpawner::BeginPlay()
 	ActiveEnemies.Reset();
 	bCurrentWaveCompleted = false;
 	bStopped = false;
+	CurrentWavePrimaryScheduled = 0;
+	CurrentWaveSecondaryScheduled = 0;
+	PrimarySpawned = 0;
+	SecondarySpawned = 0;
 
 	TDGameMode = Cast<ATDGameModeBase>(UGameplayStatics::GetGameMode(this));
 	if (!IsValid(TDGameMode))
@@ -93,7 +97,16 @@ void ATDWaveSpawner::StartNextWave()
 	}
 
 	++CurrentWave;
-	CurrentWaveEnemiesScheduled = FMath::Max(1, BaseEnemiesPerWave + ((CurrentWave - 1) * EnemiesAddedPerWave));
+	CurrentWavePrimaryScheduled = FMath::Max(1, BaseEnemiesPerWave + ((CurrentWave - 1) * EnemiesAddedPerWave));
+	CurrentWaveSecondaryScheduled = 0;
+	if (SecondaryEnemyClass && CurrentWave >= SecondaryFirstWave)
+	{
+		const int32 SecondaryWaveIndex = CurrentWave - SecondaryFirstWave;
+		CurrentWaveSecondaryScheduled = FMath::Max(0, SecondaryBaseEnemiesPerWave + (SecondaryWaveIndex * SecondaryEnemiesAddedPerWave));
+	}
+	CurrentWaveEnemiesScheduled = CurrentWavePrimaryScheduled + CurrentWaveSecondaryScheduled;
+	PrimarySpawned = 0;
+	SecondarySpawned = 0;
 	EnemiesSpawned = 0;
 	EnemiesAlive = 0;
 	EnemiesKilled = 0;
@@ -121,6 +134,32 @@ void ATDWaveSpawner::SpawnNextEnemy()
 		return;
 	}
 
+	// Interleave primary and secondary enemies proportionally across the wave rather than
+	// spawning all of one type followed by the other, so a mixed wave reads as mixed.
+	const bool bPrimaryAvailable = PrimarySpawned < CurrentWavePrimaryScheduled;
+	const bool bSecondaryAvailable = SecondaryEnemyClass && SecondarySpawned < CurrentWaveSecondaryScheduled;
+	TSubclassOf<ATDEnemyBase> ClassToSpawn;
+	if (bPrimaryAvailable && bSecondaryAvailable)
+	{
+		const float PrimaryFraction = static_cast<float>(PrimarySpawned) / CurrentWavePrimaryScheduled;
+		const float SecondaryFraction = static_cast<float>(SecondarySpawned) / CurrentWaveSecondaryScheduled;
+		ClassToSpawn = (PrimaryFraction <= SecondaryFraction) ? EnemyClass : SecondaryEnemyClass;
+	}
+	else if (bPrimaryAvailable)
+	{
+		ClassToSpawn = EnemyClass;
+	}
+	else if (bSecondaryAvailable)
+	{
+		ClassToSpawn = SecondaryEnemyClass;
+	}
+
+	if (!ClassToSpawn)
+	{
+		TryCompleteWave();
+		return;
+	}
+
 	USplineComponent* PathSpline = EnemyPath->GetPathSpline();
 	if (!IsValid(PathSpline))
 	{
@@ -129,14 +168,14 @@ void ATDWaveSpawner::SpawnNextEnemy()
 		return;
 	}
 
-	const ATDEnemyBase* EnemyDefaults = EnemyClass->GetDefaultObject<ATDEnemyBase>();
+	const ATDEnemyBase* EnemyDefaults = ClassToSpawn->GetDefaultObject<ATDEnemyBase>();
 	const FVector SpawnLocation = PathSpline->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::World)
 		+ FVector(0.0f, 0.0f, EnemyDefaults ? EnemyDefaults->PathHeightOffset : 50.0f);
 	const FRotator SpawnRotation = PathSpline->GetRotationAtSplinePoint(0, ESplineCoordinateSpace::World);
 	const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
 
 	ATDEnemyBase* Enemy = GetWorld()->SpawnActorDeferred<ATDEnemyBase>(
-		EnemyClass,
+		ClassToSpawn,
 		SpawnTransform,
 		this,
 		nullptr,
@@ -153,12 +192,20 @@ void ATDWaveSpawner::SpawnNextEnemy()
 	Enemy->OnEnemyKilled.AddDynamic(this, &ATDWaveSpawner::HandleEnemyKilled);
 	Enemy->OnEnemyEscaped.AddDynamic(this, &ATDWaveSpawner::HandleEnemyEscaped);
 
+	if (ClassToSpawn == EnemyClass)
+	{
+		++PrimarySpawned;
+	}
+	else
+	{
+		++SecondarySpawned;
+	}
 	++EnemiesSpawned;
 	++EnemiesAlive;
 	++TotalEnemiesSpawned;
 	ActiveEnemies.Add(Enemy);
-	UE_LOG(LogTemp, Log, TEXT("TD Wave %d spawning enemy %d/%d"),
-		CurrentWave, EnemiesSpawned, CurrentWaveEnemiesScheduled);
+	UE_LOG(LogTemp, Log, TEXT("TD Wave %d spawning enemy %d/%d (%s)"),
+		CurrentWave, EnemiesSpawned, CurrentWaveEnemiesScheduled, *ClassToSpawn->GetName());
 	UGameplayStatics::FinishSpawningActor(Enemy, SpawnTransform);
 
 	if (EnemiesSpawned < CurrentWaveEnemiesScheduled)

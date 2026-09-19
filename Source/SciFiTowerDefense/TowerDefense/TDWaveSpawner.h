@@ -38,6 +38,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Wave", meta = (ClampMin = "0"))
 	int32 EnemiesAddedPerWave = 2;
 
+	/** Optional second enemy type spawned alongside the primary each wave (e.g. a slow, tanky variant). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Wave|Secondary")
+	TSubclassOf<ATDEnemyBase> SecondaryEnemyClass;
+
+	/** First wave (1-based) at which SecondaryEnemyClass starts appearing. Ignored if SecondaryEnemyClass is unset. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Wave|Secondary", meta = (ClampMin = "1"))
+	int32 SecondaryFirstWave = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Wave|Secondary", meta = (ClampMin = "0"))
+	int32 SecondaryBaseEnemiesPerWave = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Wave|Secondary", meta = (ClampMin = "0"))
+	int32 SecondaryEnemiesAddedPerWave = 2;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Wave", meta = (ClampMin = "0.01", Units = "s"))
 	float SpawnInterval = 1.0f;
 
@@ -122,4 +136,9 @@ private:
 	FTimerHandle WaveResolutionTimerHandle;
 	bool bCurrentWaveCompleted = false;
 	bool bStopped = false;
+
+	int32 CurrentWavePrimaryScheduled = 0;
+	int32 CurrentWaveSecondaryScheduled = 0;
+	int32 PrimarySpawned = 0;
+	int32 SecondarySpawned = 0;
 };
