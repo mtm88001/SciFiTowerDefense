@@ -2,9 +2,9 @@
 
 #include "TowerDefense/TDEnemyHealthBarWidget.h"
 
+#include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
-#include "Widgets/Layout/SBorder.h"
 #include "Widgets/SOverlay.h"
 
 TSharedRef<SWidget> UTDEnemyHealthBarWidget::RebuildWidget()
@@ -16,25 +16,28 @@ TSharedRef<SWidget> UTDEnemyHealthBarWidget::RebuildWidget()
 			SNew(SOverlay)
 			+ SOverlay::Slot()
 			[
-				SNew(SBorder)
-				.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.02f, 0.85f))
-				.Padding(FMargin(BarPadding))
+				// Solid dark backing plate. SColorBlock paints a flat rect with no
+				// 9-slice brush, unlike SBorder, which looks hollow at this size.
+				SNew(SColorBlock)
+				.Color(FLinearColor(0.02f, 0.02f, 0.02f, 0.9f))
+			]
+			+ SOverlay::Slot()
+			.Padding(FMargin(BarPadding))
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Fill)
+				.AutoWidth()
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Fill)
-					.AutoWidth()
+					SNew(SBox)
+					.WidthOverride(TAttribute<FOptionalSize>::Create(
+						TAttribute<FOptionalSize>::FGetter::CreateUObject(this, &UTDEnemyHealthBarWidget::GetFillWidth)))
+					.HeightOverride(BarHeight - (BarPadding * 2.0f))
 					[
-						SNew(SBox)
-						.WidthOverride(TAttribute<FOptionalSize>::Create(
-							TAttribute<FOptionalSize>::FGetter::CreateUObject(this, &UTDEnemyHealthBarWidget::GetFillWidth)))
-						.HeightOverride(BarHeight - (BarPadding * 2.0f))
-						[
-							SNew(SBorder)
-							.BorderBackgroundColor(TAttribute<FSlateColor>::Create(
-								TAttribute<FSlateColor>::FGetter::CreateUObject(this, &UTDEnemyHealthBarWidget::GetFillColor)))
-						]
+						SNew(SColorBlock)
+						.Color(TAttribute<FLinearColor>::Create(
+							TAttribute<FLinearColor>::FGetter::CreateUObject(this, &UTDEnemyHealthBarWidget::GetFillColor)))
 					]
 				]
 			]
@@ -47,13 +50,13 @@ void UTDEnemyHealthBarWidget::SetHealthPercent(const float NewPercent)
 	Invalidate(EInvalidateWidgetReason::Paint);
 }
 
-FSlateColor UTDEnemyHealthBarWidget::GetFillColor() const
+FLinearColor UTDEnemyHealthBarWidget::GetFillColor() const
 {
 	if (HealthPercent > 0.5f)
 	{
-		return FSlateColor(FMath::Lerp(FLinearColor(0.9f, 0.85f, 0.1f), FLinearColor(0.1f, 0.85f, 0.2f), (HealthPercent - 0.5f) * 2.0f));
+		return FMath::Lerp(FLinearColor(0.9f, 0.85f, 0.1f), FLinearColor(0.1f, 0.85f, 0.2f), (HealthPercent - 0.5f) * 2.0f);
 	}
-	return FSlateColor(FMath::Lerp(FLinearColor(0.85f, 0.1f, 0.1f), FLinearColor(0.9f, 0.85f, 0.1f), HealthPercent * 2.0f));
+	return FMath::Lerp(FLinearColor(0.85f, 0.1f, 0.1f), FLinearColor(0.9f, 0.85f, 0.1f), HealthPercent * 2.0f);
 }
 
 FOptionalSize UTDEnemyHealthBarWidget::GetFillWidth() const

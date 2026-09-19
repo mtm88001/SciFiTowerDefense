@@ -21,10 +21,10 @@ public:
 	void SetHealthPercent(float NewPercent);
 
 private:
-	FSlateColor GetFillColor() const;
+	FLinearColor GetFillColor() const;
 	FOptionalSize GetFillWidth() const;
 
-	static constexpr float BarWidth = 36.0f;
+	static constexpr float BarWidth = 26.0f;
 	static constexpr float BarHeight = 4.0f;
 	static constexpr float BarPadding = 1.0f;
 
