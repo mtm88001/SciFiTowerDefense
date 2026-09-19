@@ -87,7 +87,7 @@ public:
 
 	/** On-screen pixel size of the health banner, sized to this enemy's on-screen footprint. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Health")
-	FVector2D HealthBarDrawSize = FVector2D(50.0f, 6.0f);
+	FVector2D HealthBarDrawSize = FVector2D(36.0f, 4.0f);
 
 	/** Damage dealt to the defended base when this enemy reaches the path endpoint. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Base", meta = (ClampMin = "0"))

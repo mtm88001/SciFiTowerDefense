@@ -63,6 +63,12 @@ void ATDEnemyBase::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	RefreshVisualState();
+
+	if (IsValid(HealthBarComponent))
+	{
+		HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, HealthBarHeightOffset));
+		HealthBarComponent->SetDrawSize(HealthBarDrawSize);
+	}
 }
 
 void ATDEnemyBase::BeginPlay()
