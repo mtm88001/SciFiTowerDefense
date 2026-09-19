@@ -83,7 +83,11 @@ public:
 
 	/** Height above the capsule origin where the health banner is drawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Health", meta = (Units = "cm"))
-	float HealthBarHeightOffset = 140.0f;
+	float HealthBarHeightOffset = 75.0f;
+
+	/** On-screen pixel size of the health banner, sized to this enemy's on-screen footprint. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Health")
+	FVector2D HealthBarDrawSize = FVector2D(50.0f, 6.0f);
 
 	/** Damage dealt to the defended base when this enemy reaches the path endpoint. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Base", meta = (ClampMin = "0"))

@@ -24,9 +24,9 @@ private:
 	FSlateColor GetFillColor() const;
 	FOptionalSize GetFillWidth() const;
 
-	static constexpr float BarWidth = 80.0f;
-	static constexpr float BarHeight = 10.0f;
-	static constexpr float BarPadding = 1.5f;
+	static constexpr float BarWidth = 50.0f;
+	static constexpr float BarHeight = 6.0f;
+	static constexpr float BarPadding = 1.0f;
 
 	float HealthPercent = 1.0f;
 };

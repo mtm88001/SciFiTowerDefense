@@ -54,7 +54,7 @@ ATDEnemyBase::ATDEnemyBase()
 	HealthBarComponent->SetupAttachment(GetCapsuleComponent());
 	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, HealthBarHeightOffset));
 	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	HealthBarComponent->SetDrawSize(FVector2D(80.0f, 10.0f));
+	HealthBarComponent->SetDrawSize(HealthBarDrawSize);
 	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
 }
