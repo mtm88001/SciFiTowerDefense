@@ -7,10 +7,12 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "TowerDefense/TDEnemyHealthBarWidget.h"
 #include "TowerDefense/TDEnemyPath.h"
 #include "TowerDefense/TDGameModeBase.h"
 #include "UObject/ConstructorHelpers.h"
@@ -45,6 +47,16 @@ ATDEnemyBase::ATDEnemyBase()
 	{
 		PlaceholderVisual->SetStaticMesh(CubeMesh.Object);
 	}
+
+	HealthBarWidgetClass = UTDEnemyHealthBarWidget::StaticClass();
+
+	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComponent"));
+	HealthBarComponent->SetupAttachment(GetCapsuleComponent());
+	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, HealthBarHeightOffset));
+	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HealthBarComponent->SetDrawSize(FVector2D(80.0f, 10.0f));
+	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
 }
 
 void ATDEnemyBase::OnConstruction(const FTransform& Transform)
@@ -63,6 +75,7 @@ void ATDEnemyBase::BeginPlay()
 	CurrentHealth = FMath::Max(0.0f, MaxHealth);
 	SetAnimationMovementState(0.0f);
 	RefreshVisualState();
+	UpdateHealthBarDisplay();
 
 	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 	{
@@ -131,6 +144,7 @@ void ATDEnemyBase::ApplyDamage(const float DamageAmount)
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
 	UE_LOG(LogTemp, Log, TEXT("TD Enemy %s took %.0f damage. Health: %.0f/%.0f"),
 		*GetActorNameOrLabel(), AppliedDamage, CurrentHealth, MaxHealth);
+	UpdateHealthBarDisplay();
 
 	if (CurrentHealth <= 0.0f)
 	{
@@ -195,6 +209,19 @@ void ATDEnemyBase::RefreshVisualState()
 	EnemyVisual->SetHiddenInGame(!bHasSkeletalVisual);
 	PlaceholderVisual->SetVisibility(!bHasSkeletalVisual, true);
 	PlaceholderVisual->SetHiddenInGame(bHasSkeletalVisual);
+}
+
+void ATDEnemyBase::UpdateHealthBarDisplay()
+{
+	if (!CachedHealthBarWidget.IsValid() && IsValid(HealthBarComponent))
+	{
+		CachedHealthBarWidget = Cast<UTDEnemyHealthBarWidget>(HealthBarComponent->GetUserWidgetObject());
+	}
+
+	if (UTDEnemyHealthBarWidget* Widget = CachedHealthBarWidget.Get())
+	{
+		Widget->SetHealthPercent(MaxHealth > 0.0f ? CurrentHealth / MaxHealth : 0.0f);
+	}
 }
 
 void ATDEnemyBase::SetAnimationMovementState(const float Speed)

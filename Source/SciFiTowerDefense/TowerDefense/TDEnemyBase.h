@@ -10,6 +10,9 @@ class ATDEnemyPath;
 class ATDEnemyBase;
 class USkeletalMeshComponent;
 class UStaticMeshComponent;
+class UWidgetComponent;
+class UTDEnemyHealthBarWidget;
+class UUserWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTDEnemyLifecycleSignature, ATDEnemyBase*, Enemy);
 
@@ -78,6 +81,10 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Tower Defense|Health")
 	float CurrentHealth = 100.0f;
 
+	/** Height above the capsule origin where the health banner is drawn. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Health", meta = (Units = "cm"))
+	float HealthBarHeightOffset = 140.0f;
+
 	/** Damage dealt to the defended base when this enemy reaches the path endpoint. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Base", meta = (ClampMin = "0"))
 	int32 EscapeDamage = 1;
@@ -108,14 +115,22 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> PlaceholderVisual;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UWidgetComponent> HealthBarComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tower Defense|Health")
+	TSubclassOf<UUserWidget> HealthBarWidgetClass;
+
 private:
 	bool ResolveEnemyPath();
 	void RefreshVisualState();
 	void SetAnimationMovementState(float Speed);
 	void UpdateTransformFromPath();
+	void UpdateHealthBarDisplay();
 	void Die();
 
 	bool bReachedPathEnd = false;
 	bool bDead = false;
 	float CachedSplineLength = 0.0f;
+	TWeakObjectPtr<UTDEnemyHealthBarWidget> CachedHealthBarWidget;
 };
