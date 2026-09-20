@@ -78,6 +78,7 @@ void ATDEnemyBase::BeginPlay()
 	DistanceAlongPath = 0.0f;
 	bReachedPathEnd = false;
 	bDead = false;
+	GaitElapsedTime = 0.0f;
 	CurrentHealth = FMath::Max(0.0f, MaxHealth);
 	SetAnimationMovementState(0.0f);
 	RefreshVisualState();
@@ -111,8 +112,11 @@ void ATDEnemyBase::Tick(const float DeltaSeconds)
 		return;
 	}
 
+	GaitElapsedTime += DeltaSeconds;
+	const float EffectiveSpeed = MovementSpeed * GetGaitSpeedMultiplier();
+
 	const FVector PreviousLocation = GetActorLocation();
-	DistanceAlongPath = FMath::Min(DistanceAlongPath + (MovementSpeed * DeltaSeconds), CachedSplineLength);
+	DistanceAlongPath = FMath::Min(DistanceAlongPath + (EffectiveSpeed * DeltaSeconds), CachedSplineLength);
 	UpdateTransformFromPath();
 	const float ActualSpeed = DeltaSeconds > UE_SMALL_NUMBER
 		? FVector::Dist2D(PreviousLocation, GetActorLocation()) / DeltaSeconds
@@ -215,6 +219,26 @@ void ATDEnemyBase::RefreshVisualState()
 	EnemyVisual->SetHiddenInGame(!bHasSkeletalVisual);
 	PlaceholderVisual->SetVisibility(!bHasSkeletalVisual, true);
 	PlaceholderVisual->SetHiddenInGame(bHasSkeletalVisual);
+}
+
+float ATDEnemyBase::GetGaitSpeedMultiplier() const
+{
+	if (GaitCycleDuration <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	const float Phase = FMath::Fmod(GaitElapsedTime, GaitCycleDuration) / GaitCycleDuration;
+	if (Phase <= GaitDipStartPhase)
+	{
+		return 1.0f;
+	}
+
+	// Ease the speed down and back up across the tail end of the cycle, rather than a hard cut,
+	// so each lunge reads as a deliberate step-and-settle instead of a constant slide.
+	const float DipPhase = (Phase - GaitDipStartPhase) / (1.0f - GaitDipStartPhase);
+	const float DipCurve = FMath::Sin(DipPhase * PI);
+	return 1.0f - (GaitSpeedDipAmount * DipCurve);
 }
 
 void ATDEnemyBase::UpdateHealthBarDisplay()

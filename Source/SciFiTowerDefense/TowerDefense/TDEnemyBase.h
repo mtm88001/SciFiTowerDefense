@@ -47,6 +47,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Movement", meta = (ClampMin = "0.0", Units = "cm/s"))
 	float MovementSpeed = 300.0f;
 
+	/** Duration in seconds of one full gait cycle (lunge), used to modulate travel speed for a
+	 *  stride-like motion instead of a perfectly uniform slide. Set to 0 to disable (constant speed). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Movement|Gait", meta = (ClampMin = "0.0", Units = "s"))
+	float GaitCycleDuration = 0.0f;
+
+	/** Fraction (0-1) that travel speed dips by near the end of each gait cycle. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Movement|Gait", meta = (ClampMin = "0.0", ClampMax = "0.95"))
+	float GaitSpeedDipAmount = 0.35f;
+
+	/** Normalized point (0-1) within the gait cycle where the end-of-lunge speed dip begins. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Movement|Gait", meta = (ClampMin = "0.0", ClampMax = "0.99"))
+	float GaitDipStartPhase = 0.7f;
+
 	/** Vertical offset from the spline, keeping the capsule and visual above the platform. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Movement", meta = (ClampMin = "0.0", Units = "cm"))
 	float PathHeightOffset = 50.0f;
@@ -131,10 +144,12 @@ private:
 	void SetAnimationMovementState(float Speed);
 	void UpdateTransformFromPath();
 	void UpdateHealthBarDisplay();
+	float GetGaitSpeedMultiplier() const;
 	void Die();
 
 	bool bReachedPathEnd = false;
 	bool bDead = false;
 	float CachedSplineLength = 0.0f;
+	float GaitElapsedTime = 0.0f;
 	TWeakObjectPtr<UTDEnemyHealthBarWidget> CachedHealthBarWidget;
 };
