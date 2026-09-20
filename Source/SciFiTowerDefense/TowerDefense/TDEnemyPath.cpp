@@ -4,6 +4,9 @@
 
 #include "Components/ArrowComponent.h"
 #include "Components/SplineComponent.h"
+#include "Components/SplineMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 ATDEnemyPath::ATDEnemyPath()
 {
@@ -52,6 +55,76 @@ void ATDEnemyPath::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	UpdateEndpointArrows();
+	RebuildPathVisual();
+}
+
+void ATDEnemyPath::ClearPathVisual()
+{
+	for (USplineMeshComponent* Segment : PathVisualSegments)
+	{
+		if (IsValid(Segment))
+		{
+			Segment->DestroyComponent();
+		}
+	}
+	PathVisualSegments.Reset();
+}
+
+void ATDEnemyPath::RebuildPathVisual()
+{
+	ClearPathVisual();
+
+	if (!PathSegmentMesh || !PathVisualMaterial || PathVisualStepLength <= 0.0f || PathTileWorldLength <= 0.0f)
+	{
+		return;
+	}
+
+	const float SplineLength = PathSpline->GetSplineLength();
+	if (SplineLength <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const float NativeWidth = PathSegmentMesh->GetBounds().BoxExtent.Y * 2.0f;
+	if (NativeWidth <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+	const float WidthScale = PathWidth / NativeWidth;
+
+	const int32 NumSegments = FMath::Max(1, FMath::RoundToInt(SplineLength / PathVisualStepLength));
+	const float ActualStepLength = SplineLength / NumSegments;
+
+	for (int32 SegmentIndex = 0; SegmentIndex < NumSegments; ++SegmentIndex)
+	{
+		const float StartDistance = SegmentIndex * ActualStepLength;
+		const float EndDistance = (SegmentIndex + 1) * ActualStepLength;
+
+		USplineMeshComponent* Segment = NewObject<USplineMeshComponent>(this, NAME_None, RF_Transactional);
+		Segment->SetMobility(EComponentMobility::Movable);
+		Segment->SetupAttachment(PathSpline);
+		Segment->SetStaticMesh(PathSegmentMesh);
+		Segment->SetForwardAxis(ESplineMeshAxis::X, false);
+		Segment->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Segment->SetCastShadow(false);
+
+		const FVector StartPos = PathSpline->GetLocationAtDistanceAlongSpline(StartDistance, ESplineCoordinateSpace::Local);
+		const FVector StartTangent = PathSpline->GetTangentAtDistanceAlongSpline(StartDistance, ESplineCoordinateSpace::Local).GetSafeNormal() * ActualStepLength;
+		const FVector EndPos = PathSpline->GetLocationAtDistanceAlongSpline(EndDistance, ESplineCoordinateSpace::Local);
+		const FVector EndTangent = PathSpline->GetTangentAtDistanceAlongSpline(EndDistance, ESplineCoordinateSpace::Local).GetSafeNormal() * ActualStepLength;
+		Segment->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent, false);
+		Segment->SetStartScale(FVector2D(WidthScale, WidthScale), false);
+		Segment->SetEndScale(FVector2D(WidthScale, WidthScale), false);
+
+		UMaterialInstanceDynamic* SegmentMaterial = UMaterialInstanceDynamic::Create(PathVisualMaterial, this);
+		SegmentMaterial->SetScalarParameterValue(TEXT("UVLengthScale"), ActualStepLength / PathTileWorldLength);
+		SegmentMaterial->SetScalarParameterValue(TEXT("UVLengthOffset"), StartDistance / PathTileWorldLength);
+		Segment->SetMaterial(0, SegmentMaterial);
+
+		Segment->RegisterComponent();
+		AddInstanceComponent(Segment);
+		PathVisualSegments.Add(Segment);
+	}
 }
 
 void ATDEnemyPath::UpdateEndpointArrows()
