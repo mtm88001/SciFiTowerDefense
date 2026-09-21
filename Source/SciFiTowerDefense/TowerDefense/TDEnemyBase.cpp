@@ -271,8 +271,15 @@ void ATDEnemyBase::UpdateTransformFromPath()
 	const FVector PathDirection = Spline->GetDirectionAtDistanceAlongSpline(DistanceAlongPath, ESplineCoordinateSpace::World);
 	const float PathYaw = PathDirection.Rotation().Yaw;
 
+	// A per-tick ground trace was tried here to auto-adapt to the path mesh's real height
+	// (see GroundTraceUpDistance/GroundTraceDownDistance/GroundClearance), but it correlated
+	// directly with enemies visually flickering in and out (confirmed by reverting to this
+	// fixed calculation). The current path is flat, so a fixed offset is correct and stable;
+	// revisit dynamic ground-adaptation separately if a non-flat path is ever needed.
+	const FVector TargetLocation = PathLocation + FVector(0.0f, 0.0f, PathHeightOffset);
+
 	SetActorLocationAndRotation(
-		PathLocation + FVector(0.0f, 0.0f, PathHeightOffset),
+		TargetLocation,
 		FRotator(0.0f, PathYaw, 0.0f),
 		false,
 		nullptr,

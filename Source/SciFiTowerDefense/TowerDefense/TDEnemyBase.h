@@ -60,7 +60,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Movement|Gait", meta = (ClampMin = "0.0", ClampMax = "0.99"))
 	float GaitDipStartPhase = 0.7f;
 
-	/** Vertical offset from the spline, keeping the capsule and visual above the platform. */
+	/** Vertical offset from the spline, keeping the capsule and visual standing on top of the
+	 *  path mesh. A per-tick ground trace was tried instead (to auto-adapt to the path's real
+	 *  height) but correlated directly with enemies visually flickering, so this fixed offset
+	 *  is used instead. The current path is flat, so a fixed value is correct here. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tower Defense|Movement", meta = (ClampMin = "0.0", Units = "cm"))
 	float PathHeightOffset = 50.0f;
 

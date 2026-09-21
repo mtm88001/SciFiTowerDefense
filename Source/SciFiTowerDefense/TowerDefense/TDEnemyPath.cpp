@@ -60,11 +60,17 @@ void ATDEnemyPath::OnConstruction(const FTransform& Transform)
 
 void ATDEnemyPath::ClearPathVisual()
 {
-	for (USplineMeshComponent* Segment : PathVisualSegments)
+	// PathVisualSegments is Transient and doesn't survive a level save/reload, but the spline
+	// mesh components themselves do (they were added via AddInstanceComponent). Sweep the
+	// spline's actual attached children rather than trusting the tracking array alone, or a
+	// fresh level load leaves the old segments in place and piles a second set on top of them.
+	TArray<USceneComponent*> AttachedComponents;
+	PathSpline->GetChildrenComponents(false, AttachedComponents);
+	for (USceneComponent* Child : AttachedComponents)
 	{
-		if (IsValid(Segment))
+		if (USplineMeshComponent* SplineMesh = Cast<USplineMeshComponent>(Child))
 		{
-			Segment->DestroyComponent();
+			SplineMesh->DestroyComponent();
 		}
 	}
 	PathVisualSegments.Reset();
@@ -105,7 +111,9 @@ void ATDEnemyPath::RebuildPathVisual()
 		Segment->SetupAttachment(PathSpline);
 		Segment->SetStaticMesh(PathSegmentMesh);
 		Segment->SetForwardAxis(ESplineMeshAxis::X, false);
-		Segment->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Segment->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Segment->SetCollisionObjectType(ECC_WorldStatic);
+		Segment->SetCollisionResponseToAllChannels(ECR_Block);
 		Segment->SetCastShadow(false);
 
 		const FVector StartPos = PathSpline->GetLocationAtDistanceAlongSpline(StartDistance, ESplineCoordinateSpace::Local);
@@ -113,8 +121,10 @@ void ATDEnemyPath::RebuildPathVisual()
 		const FVector EndPos = PathSpline->GetLocationAtDistanceAlongSpline(EndDistance, ESplineCoordinateSpace::Local);
 		const FVector EndTangent = PathSpline->GetTangentAtDistanceAlongSpline(EndDistance, ESplineCoordinateSpace::Local).GetSafeNormal() * ActualStepLength;
 		Segment->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent, false);
-		Segment->SetStartScale(FVector2D(WidthScale, WidthScale), false);
-		Segment->SetEndScale(FVector2D(WidthScale, WidthScale), false);
+		// Only the Y (width) axis should follow PathWidth; Z (height) must stay at native scale
+		// or the mesh's raised bevel gets stretched vertically right along with the width.
+		Segment->SetStartScale(FVector2D(WidthScale, 1.0f), false);
+		Segment->SetEndScale(FVector2D(WidthScale, 1.0f), false);
 
 		UMaterialInstanceDynamic* SegmentMaterial = UMaterialInstanceDynamic::Create(PathVisualMaterial, this);
 		SegmentMaterial->SetScalarParameterValue(TEXT("UVLengthScale"), ActualStepLength / PathTileWorldLength);
